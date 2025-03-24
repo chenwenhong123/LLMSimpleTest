@@ -31,8 +31,6 @@ def generate_content_gpt_neo(text):
             max_length=max_length,
             num_return_sequences=1,
             truncation=True,
-            do_sample=True,  # 增加生成多样性
-            top_k=50  # 增加生成质量
         )
         generated_text = result[0]['generated_text']
         # 替换换行符为空格，避免多行问题
