@@ -25,7 +25,7 @@ def generate_content_gpt_neo(text):
     try:
         # 动态计算 max_length
         input_length = len(tokenizer.encode(text))
-        max_length = input_length + 100  # 增加生成长度
+        max_length = input_length + 500  # 增加生成长度
         result = gpt_neo_generator(
             text,
             max_length=max_length,
