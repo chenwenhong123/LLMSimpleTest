@@ -17,7 +17,7 @@ def generate_content_bloom(text):
         max_length=max_length,
         num_return_sequences=1,
         truncation=True,
-        do_sample=False,  # 可选，避免重复
+        do_sample=True,  # 可选，避免重复
         temperature=0.7  # 调整temperature，生成更丰富的内容
     )
     generated_text = result[0]['generated_text']
