@@ -10,17 +10,22 @@ tokenizer = BloomTokenizerFast.from_pretrained("bigscience/bloom-560m")
 
 # 定义生成内容的函数
 def generate_content_bloom(text):
-    """
-    使用 BLOOM 生成内容
-    """
-    # 动态计算 max_length
     input_length = len(tokenizer.encode(text))
-    max_length = input_length + 50  # 输入长度 + 50 个 token
-    result = bloom_generator(text, max_length=max_length, num_return_sequences=1, truncation=True)
-    return result[0]['generated_text']
+    max_length = input_length + 500  # 增加max_length的值
+    result = bloom_generator(
+        text,
+        max_length=max_length,
+        num_return_sequences=1,
+        truncation=True,
+        do_sample=False,  # 可选，避免重复
+        temperature=0.7  # 调整temperature，生成更丰富的内容
+    )
+    generated_text = result[0]['generated_text']
+    generated_text = generated_text.replace('\n', ' ')
+    return generated_text
 
 # 读取CSV文件
-input_csv = 'texts.csv'  # 输入文件路径
+input_csv = 'texts.csv'
 
 # 检测文件编码
 with open(input_csv, 'rb') as f:
@@ -31,21 +36,19 @@ with open(input_csv, 'rb') as f:
 df = pd.read_csv(input_csv, encoding=result['encoding'])
 
 # 检查CSV文件是否包含所需的列
-required_columns = ['original_query', 'obfuscated_query', 'test_target']
+required_columns = ['original_query', 'obfuscated_query']
 if not all(column in df.columns for column in required_columns):
-    raise ValueError("CSV文件必须包含 'original_query', 'obfuscated_query', 'test_target' 列")
+    raise ValueError("CSV文件必须包含 'original_query', 'obfuscated_query' 列")
 
 # 对每一列调用 BLOOM 生成内容
 original_results = df['original_query'].apply(generate_content_bloom)
 obfuscated_results = df['obfuscated_query'].apply(generate_content_bloom)
-test_target_results = df['test_target'].apply(generate_content_bloom)
 
-# 将结果保存到新的CSV文件中（使用 UTF-8 编码）
-original_results.to_csv('original_output_bloom.csv', index=False, header=['generated_content'], encoding='utf-8')
-obfuscated_results.to_csv('obfuscated_output_bloom.csv', index=False, header=['generated_content'], encoding='utf-8')
-test_target_results.to_csv('test_target_output_bloom.csv', index=False, header=['generated_content'], encoding='utf-8')
+# 将结果添加到DataFrame，并保存到原CSV文件
+df['generated_original_bloom'] = original_results
+df['generated_obfuscated_bloom'] = obfuscated_results
 
-print("处理完成，结果已保存到以下文件：")
-print("- original_output_bloom.csv")
-print("- obfuscated_output_bloom.csv")
-print("- test_target_output_bloom.csv")
+# 保存回原CSV文件，使用UTF-8编码
+df.to_csv(input_csv, index=False, encoding='utf-8', mode='w')
+
+print("处理完成，结果已添加到原始文件：", input_csv)

@@ -3,22 +3,43 @@ from transformers import pipeline, AutoTokenizer
 import chardet
 import torch
 
-# 加载 GPT-Neo 文本生成模型和 tokenizer，并指定设备
+# 加载并配置模型和tokenizer
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model_name = "EleutherAI/gpt-neo-2.7B"
-gpt_neo_generator = pipeline("text-generation", model=model_name, device=device)
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+# 初始化模型和tokenizer（确保只加载一次）
+gpt_neo_generator = None
+tokenizer = None
+
+def init_model():
+    global gpt_neo_generator, tokenizer
+    if gpt_neo_generator is None:
+        gpt_neo_generator = pipeline("text-generation", model=model_name, device=device)
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+init_model()
 
 # 定义生成内容的函数
 def generate_content_gpt_neo(text):
-    """
-    使用 GPT-Neo 生成内容
-    """
-    # 动态计算 max_length
-    input_length = len(tokenizer.encode(text))
-    max_length = input_length + 50  # 输入长度 + 50 个 token
-    result = gpt_neo_generator(text, max_length=max_length, num_return_sequences=1, truncation=True)
-    return result[0]['generated_text']
+    try:
+        # 动态计算 max_length
+        input_length = len(tokenizer.encode(text))
+        max_length = input_length + 100  # 增加生成长度
+        result = gpt_neo_generator(
+            text,
+            max_length=max_length,
+            num_return_sequences=1,
+            truncation=True,
+            do_sample=True,  # 增加生成多样性
+            top_k=50  # 增加生成质量
+        )
+        generated_text = result[0]['generated_text']
+        # 替换换行符为空格，避免多行问题
+        return generated_text.replace('\n', ' ')
+    except Exception as e:
+        print(f"生成内容时出错（输入：{text}）：{e}")
+        return ""  # 返回空字符串表示生成失败
 
 # 读取CSV文件
 input_csv = 'texts.csv'  # 输入文件路径
@@ -32,21 +53,22 @@ with open(input_csv, 'rb') as f:
 df = pd.read_csv(input_csv, encoding=result['encoding'])
 
 # 检查CSV文件是否包含所需的列
-required_columns = ['original_query', 'obfuscated_query', 'test_target']
+required_columns = ['original_query', 'obfuscated_query']
 if not all(column in df.columns for column in required_columns):
-    raise ValueError("CSV文件必须包含 'original_query', 'obfuscated_query', 'test_target' 列")
+    raise ValueError("CSV文件必须包含 'original_query', 'obfuscated_query' 列")
 
 # 对每一列调用 GPT-Neo 生成内容
 original_results = df['original_query'].apply(generate_content_gpt_neo)
 obfuscated_results = df['obfuscated_query'].apply(generate_content_gpt_neo)
-test_target_results = df['test_target'].apply(generate_content_gpt_neo)
 
-# 将结果保存到新的CSV文件中（使用 UTF-8 编码）
-original_results.to_csv('original_output_gpt_neo.csv', index=False, header=['generated_content'], encoding='utf-8')
-obfuscated_results.to_csv('obfuscated_output_gpt_neo.csv', index=False, header=['generated_content'], encoding='utf-8')
-test_target_results.to_csv('test_target_output_gpt_neo.csv', index=False, header=['generated_content'], encoding='utf-8')
+# 将生成结果添加到原始DataFrame中
+# 添加新列
+df['generated_original_gptneo'] = original_results.astype(str)
+df['generated_obfuscated_gptneo'] = obfuscated_results.astype(str)
 
-print("处理完成，结果已保存到以下文件：")
-print("- original_output_gpt_neo.csv")
-print("- obfuscated_output_gpt_neo.csv")
-print("- test_target_output_gpt_neo.csv")
+try:
+    df.to_csv(input_csv, index=False, encoding='utf-8', mode='w')
+    print("成功将生成结果添加到原文件：", input_csv)
+except Exception as e:
+    print(f"保存文件时出错：{e}")
+
