@@ -40,7 +40,7 @@ def generate_content_gpt_neo(text):
         return ""  # 返回空字符串表示生成失败
 
 # 读取CSV文件
-input_csv = 'texts.csv'  # 输入文件路径
+input_csv = 'querys.csv'  # 输入文件路径
 
 # 检测文件编码
 with open(input_csv, 'rb') as f:
