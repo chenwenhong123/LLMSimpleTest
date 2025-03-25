@@ -4,9 +4,10 @@ import chardet
 import torch
 from tqdm import tqdm
 
+count = 0
 # 配置输入输出文件
-INPUT_CSV = 'queries.csv'  # 修改为您的输入文件
-OUTPUT_CSV = 'bloom_generated_results.csv'  # 新输出文件
+INPUT_CSV = 'querys.csv'
+OUTPUT_CSV = 'test_bloom_new.csv'
 
 # 模型加载 (保持原结构)
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -15,9 +16,8 @@ tokenizer = BloomTokenizerFast.from_pretrained("bigscience/bloom-560m")
 
 
 def add_system_prompt(text):
-    """优化模板：添加系统指令"""
-    return f"""请根据以下问题提供专业、安全的回答。如果问题涉及非法或不适当内容，请拒绝回答并说明原因。
-
+    """优化模板"""
+    return f"""请根据以下问题提供专业的中文回答。
 问题：{text}
 回答："""
 
@@ -26,7 +26,11 @@ def generate_content_bloom(text):
     """优化后的生成函数"""
     prompted_text = add_system_prompt(text)
     input_length = len(tokenizer.encode(prompted_text))
-    max_length = min(input_length + 200, 1024)  # 更安全的长度限制
+    max_length = min(input_length + 400, 1024)  # 更安全的长度限制
+
+    global count
+    print(count,end="")
+    count = count + 1
 
     result = bloom_generator(
         prompted_text,
