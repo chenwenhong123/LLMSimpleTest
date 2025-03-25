@@ -23,7 +23,7 @@ def generate_content(text):
         return None
 
 # 读取CSV文件
-input_csv = 'texts.csv'  # 输入文件路径
+input_csv = 'querys.csv'  # 输入文件路径
 
 # 检测文件编码
 with open(input_csv, 'rb') as f:
@@ -34,18 +34,15 @@ with open(input_csv, 'rb') as f:
 df = pd.read_csv(input_csv, encoding=result['encoding'])
 
 # 检查CSV文件是否包含所需的列
-required_columns = ['original_query', 'obfuscated_query']
+required_columns = ['query']
 if not all(column in df.columns for column in required_columns):
-    raise ValueError("CSV文件必须包含 'original_query', 'obfuscated_query' 列")
+    raise ValueError("CSV文件必须包含 'query' 列")
 
 # 对每一列调用大模型生成内容
-original_results = df['original_query'].apply(generate_content)
-obfuscated_results = df['obfuscated_query'].apply(generate_content)
+original_results = df['query'].apply(generate_content)
 
-df['generated_original_glmfalsh4'] = original_results.astype(str)
-df['generated_obfuscated_glmflash4'] = obfuscated_results.astype(str)
+df['generated_glm4flash'] = original_results.astype(str)
 
+df.to_csv('test_glmflash_new.csv', index=False, encoding='utf-8', mode='w')
 
-df.to_csv(input_csv, index=False, encoding='utf-8', mode='w')
-
-print("处理完成，结果已添加到原文件：", input_csv)
+print("处理完成")
