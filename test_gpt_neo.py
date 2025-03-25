@@ -6,7 +6,7 @@ import chardet
 
 INPUT_CSV = 'querys.csv'  # 输入文件路径（需包含query列）
 OUTPUT_CSV = 'test_gptneo_new.csv'  # 输出文件路径
-MODEL_NAME = "EleutherAI/gpt-neo-125M"  # 125M超轻量版
+MODEL_NAME = "EleutherAI/gpt-neo-1.3B"  # 125M超轻量版/1.3B
 
 # ===== 模型加载（自动缓存）=====
 device = "cuda" if torch.cuda.is_available() else "cpu"
